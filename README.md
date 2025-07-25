@@ -100,6 +100,25 @@ uv run narko.py --file path/to/markdown.md --import
 - Language mapping for 80+ programming languages
 - Obsidian syntax cleaning (wiki links, tags, frontmatter)
 
-## License
+## 🪔 Wishlist (wishful thinking to-do list)
 
-MIT
+### 🏗️ **Architecture & Distribution**
+- Split into proper Python package structure (`narko/`, `setup.py`, etc.)
+- Publish to PyPI as `pip install narko`
+- Separate marko extensions into standalone package for reuse
+
+### 🧪 **Quality & Testing**
+- Add comprehensive test suite with pytest
+- Create GitHub Actions workflow for CI/CD
+- Add verbose/debug logging modes
+
+### ✨ **Features**
+- Table support (currently falls back to paragraph)
+- Image/file upload handling for embedded content
+- Batch processing for multiple files at once
+- Nested page creation from directory structure
+
+### 🔧 **UX Improvements**
+- Configuration file support (vs hardcoded page map)
+- Incremental updates (only process changed files)
+- Better error handling and user feedback
