@@ -81,8 +81,13 @@ uv run narko.py --file document.md --test
 # Import to Notion
 uv run narko.py --file document.md --import
 
-# Process specific file
-uv run narko.py --file path/to/markdown.md --import
+# Import to specific parent page
+uv run narko.py --file document.md --parent your_page_id --import
+
+# Test files for validation
+uv run narko.py --file test_common.md --test          # Quick validation
+uv run narko.py --file test_comprehensive.md --test   # Full test suite
+uv run narko.py --file test_notion_advanced.md --test # Advanced features
 ```
 
 ## Architecture
@@ -120,5 +125,7 @@ uv run narko.py --file path/to/markdown.md --import
 
 ### 🔧 **UX Improvements**
 - Configuration file support (vs hardcoded page map)
+- CLI option to specify parent page directly (--parent)
+- Remove dependency on page_map.json file
 - Incremental updates (only process changed files)
 - Better error handling and user feedback

@@ -545,6 +545,7 @@ def process_file(file_path: str, parent_id: str = None) -> Dict:
 def main():
     parser = argparse.ArgumentParser(description='narko - Notion extension and uploader for marko')
     parser.add_argument('--file', help='Import a specific file')
+    parser.add_argument('--parent', help='Parent page ID to import into (overrides page_map.json)')
     parser.add_argument('--test', action='store_true', help='Test mode')
     parser.add_argument('--import', dest='do_import', action='store_true', help='Import to Notion')
     
@@ -555,7 +556,8 @@ def main():
         return
     
     if args.file:
-        result = process_file(args.file)
+        parent_id = args.parent if args.parent else None
+        result = process_file(args.file, parent_id)
         
         if "error" in result:
             print(f"Error: {result['error']}")
