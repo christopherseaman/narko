@@ -10,16 +10,19 @@
 - ✅ **Language detection** - 80+ programming languages with syntax highlighting
 - ✅ **Obsidian compatibility** - Handles wiki links, tags, callouts, frontmatter
 - ✅ **Text chunking** - Respects Notion's 2000-character limits
-- ✅ **Zero dependencies** - Self-contained uv script
+- ✅ **Python package** - Clean package structure with CLI interface
 
 ## Quick Start
 
 ```bash
+# Install (development mode)
+pip install -e .
+
 # Test conversion
-uv run narko.py --file README.md --test
+narko --file README.md --test
 
 # Import to Notion
-uv run narko.py --file README.md --import
+narko --file README.md --import
 ```
 
 ## Supported Extensions
@@ -46,48 +49,39 @@ Plus common aliases: `py→python`, `js→javascript`, `ts→typescript`, `docke
 
 ## Setup
 
-1. **Environment Variables** - Copy and configure:
+1. **Install Package**:
    ```bash
-   cp .env.example .env
-   # Edit .env with your Notion integration token
-   ```
-   ```
-   NOTION_API_KEY=your_integration_token_here
+   git clone <repository-url>
+   cd narko
+   pip install -e .
    ```
 
-2. **Page Mapping** - Copy and configure:
+2. **Environment Variables**:
    ```bash
-   cp page_map.json.example page_map.json
-   # Edit page_map.json with your parent page ID
-   ```
-   ```json
-   {
-     ".": "your_parent_page_id_here"
-   }
+   export NOTION_API_KEY="your_integration_token_here"
+   export NOTION_IMPORT_ROOT="your_parent_page_id_here"
    ```
 
 3. **Notion Integration**:
    - Create integration at [developers.notion.com](https://developers.notion.com)
-   - Copy the integration token to `.env`
    - Create/share a parent page in Notion with the integration
-   - Copy the page ID from the URL to `page_map.json`
+   - Use the page ID from the URL as your `NOTION_IMPORT_ROOT`
 
 ## Usage
 
 ```bash
 # Test mode - shows blocks without importing
-uv run narko.py --file document.md --test
+narko --file document.md --test
 
 # Import to Notion
-uv run narko.py --file document.md --import
+narko --file document.md --import
 
 # Import to specific parent page
-uv run narko.py --file document.md --parent your_page_id --import
+narko --file document.md --parent your_page_id --import
 
-# Test files for validation
-uv run narko.py --file test_common.md --test          # Quick validation
-uv run narko.py --file test_comprehensive.md --test   # Full test suite
-uv run narko.py --file test_notion_advanced.md --test # Advanced features
+# Replace modes (advanced)
+narko --file document.md --replace-all --import        # Replace all content
+narko --file document.md --replace-content --import    # Replace content, keep sub-pages
 ```
 
 ## Architecture
@@ -108,24 +102,32 @@ uv run narko.py --file test_notion_advanced.md --test # Advanced features
 ## 🪔 Wishlist (wishful thinking to-do list)
 
 ### 🏗️ **Architecture & Distribution**
-- Split into proper Python package structure (`narko/`, `setup.py`, etc.)
+- ✅ Split into proper Python package structure (`narko/`, `setup.py`, etc.)
 - Publish to PyPI as `pip install narko`
 - Separate marko extensions into standalone package for reuse
 
 ### 🧪 **Quality & Testing**
-- Add comprehensive test suite with pytest
-- Create GitHub Actions workflow for CI/CD
+- ✅ Add comprehensive test suite with pytest
+- Create GitHub Actions workflow for CI/CD  
 - Add verbose/debug logging modes
+- Improve test organization and coverage
 
 ### ✨ **Features**
-- Table support (currently falls back to paragraph)
-- Image/file upload handling for embedded content
+- Table support verification (marko[gfm] integration)
+- ✅ Image/file upload handling for embedded content
 - Batch processing for multiple files at once
 - Nested page creation from directory structure
+- Strikethrough annotation support (`~~text~~`)
+- **API Coverage Expansion** - Currently ~85-90% coverage for markdown import:
+  - Missing: underline formatting, extended color palette
+  - Page property updates (title, metadata modification)  
+  - Database integration (create pages in databases)
+  - Search API integration for existing page discovery
+  - *See `tmp_docs/notion_api_docs/` and `tmp_docs/formatting_coverage_analysis.md` for detailed analysis*
 
 ### 🔧 **UX Improvements**
-- Configuration file support (vs hardcoded page map)
-- CLI option to specify parent page directly (--parent)
-- Remove dependency on page_map.json file
+- ✅ Configuration file support (vs hardcoded page map)
+- ✅ CLI option to specify parent page directly (--parent)
+- ✅ Remove dependency on page_map.json file
 - Incremental updates (only process changed files)
 - Better error handling and user feedback
