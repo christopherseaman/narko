@@ -54,21 +54,21 @@ class NarkoApp:
         """Process a markdown file using modular components"""
         if not os.path.exists(file_path):
             return {"error": f"File not found: {file_path}"}
-        
+
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
+
         # Parse to AST using Marko extensions
         ast = self.markdown.parse(content)
-        
+
         # Convert to Notion blocks using converter
         blocks = self.converter.convert(ast)
-        
+
         title = os.path.splitext(os.path.basename(file_path))[0]
-        
+
         return {
             "title": title,
-            "parent_id": parent_id or self.config.notion_import_root,
+            "parent_id": parent_id,  # No fallback - must be explicit
             "blocks": blocks,
             "file_path": file_path
         }
@@ -147,16 +147,16 @@ Modular Architecture:
   - Advanced validation and caching
 
 Examples:
-  narko --file document.md --import                # Import single file
-  narko --validate "*.md"                          # Validate files
-  narko --cache-info                               # Show cache stats
-  narko --file doc.md --test --show-embeddings     # Test with analysis
+  narko --file document.md --parent PAGE_ID --import   # Import single file (--parent required!)
+  narko --validate "*.md"                              # Validate files
+  narko --cache-info                                   # Show cache stats
+  narko --file doc.md --test --show-embeddings         # Test with analysis
         '''
     )
     
     # File input options
     parser.add_argument('--file', help='Process and optionally import a specific file')
-    parser.add_argument('--parent', help='Parent page ID to import into')
+    parser.add_argument('--parent', help='Parent page ID to import into (REQUIRED with --import)')
     parser.add_argument('--validate', help='Validate files using glob pattern')
     
     # Processing options
@@ -203,6 +203,15 @@ Examples:
     
     # Handle file processing
     if args.file:
+        # Check if --import is used without --parent
+        if args.do_import and not args.parent:
+            print("❌ Error: --parent is required when using --import")
+            print("   Usage: narko --file document.md --parent PAGE_ID --import")
+            print("   Where PAGE_ID can be:")
+            print("   - A Notion page URL: https://notion.so/My-Page-abc123...")
+            print("   - A page ID: abc123def456...")
+            return
+
         parent_id = app.notion_client.extract_page_id(args.parent) if args.parent else None
         result = app.process_file(args.file, parent_id)
         
