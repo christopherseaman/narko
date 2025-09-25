@@ -1,22 +1,25 @@
-# Test Upload Document
+# Test Markdown File for Notion Upload
 
-This is a test markdown document to verify file upload functionality.
+This is a **test markdown** file to verify upload functionality.
 
-## Content
-- Simple markdown formatting
-- Text content for embedding
-- File upload test
+## Features to Test
 
-![file](test_upload.md)
+- **Bold text**
+- *Italic text*
+- [Links](https://notion.so)
+- `Code snippets`
 
-## Test Data
-Some sample content that should be processed for embeddings when uploaded.
+### Code Block
 
-Code example:
 ```python
-def test_function():
-    return "Hello, World!"
+def test():
+    return "Markdown uploaded successfully!"
 ```
 
----
-*Test document for narko file upload verification*
+### Checklist
+
+- [ ] Upload works
+- [ ] Content preserved
+- [ ] Formatting intact
+
+> This is a blockquote to test formatting preservation.

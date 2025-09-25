@@ -26,17 +26,31 @@ class FileUploader:
         self.cache = UploadCache(config)
         self.validator = FileValidator(config)
     
-    async def upload_async(self, file_path: str, file_name: str = None, 
+    async def upload_async(self, file_path: str, file_name: str = None,
                           progress_callback: Optional[Callable] = None) -> Dict:
-        """Upload file asynchronously with streaming support"""
+        """Upload file asynchronously with streaming support
+
+        Automatically applies .txt extension workaround for unsupported text file types
+        like .py, .sh, .md that Notion's API doesn't accept natively.
+        """
         if not file_name:
             file_name = os.path.basename(file_path)
-        
+
+        original_name = file_name
+        file_ext = os.path.splitext(file_name)[1].lower()
+
+        # Check if file needs extension workaround
+        needs_workaround = self.config.needs_extension_workaround(file_ext)
+        if needs_workaround:
+            # Add .txt extension for upload
+            file_name = f"{file_name}.txt"
+            logger.info(f"Applying .txt workaround: {original_name} -> {file_name}")
+
         # Validate file
         validation = self.validator.validate_file(file_path)
         if not validation['valid']:
             return {'error': f'Validation failed: {validation["errors"]}', 'file_path': file_path}
-        
+
         file_size = validation['metadata']['size']
         
         # Check cache
@@ -77,6 +91,11 @@ class FileUploader:
                         return {'error': 'Invalid upload response from Notion API'}
                 
                 # Step 2: Upload file content
+                # Check if we got a direct upload URL or need to use the /send endpoint
+                if not upload_url:
+                    # Use the /send endpoint
+                    upload_url = f"https://api.notion.com/v1/file_uploads/{file_id}/send"
+
                 upload_result = await self._upload_file_content(
                     session, upload_url, file_path, file_name, file_size, progress_callback
                 )
@@ -88,10 +107,12 @@ class FileUploader:
                 result = {
                     "file_id": file_id,
                     "name": file_name,
+                    "original_name": original_name if needs_workaround else file_name,
                     "size": file_size,
                     "success": True,
                     "upload_timestamp": datetime.datetime.utcnow().isoformat(),
-                    "upload_method": "direct"
+                    "upload_method": "direct",
+                    "workaround_applied": needs_workaround
                 }
                 
                 # Cache result
@@ -130,24 +151,38 @@ class FileUploader:
         except Exception as e:
             return {'error': f'Upload content failed: {str(e)}'}
     
-    async def _simple_upload(self, session: aiohttp.ClientSession, upload_url: str, 
+    async def _simple_upload(self, session: aiohttp.ClientSession, upload_url: str,
                            headers: Dict, file_path: str, file_name: str, mime_type: str) -> Dict:
         """Simple file upload for smaller files"""
         try:
-            async with aiofiles.open(file_path, 'rb') as f:
-                file_data = await f.read()
-            
-            data = aiohttp.FormData()
-            data.add_field('file', file_data, filename=file_name, content_type=mime_type)
-            
-            async with session.post(upload_url, headers=headers, data=data, 
+            # Check if this is a /send endpoint (new API) or S3 presigned URL
+            if '/send' in upload_url:
+                # New API endpoint - use multipart/form-data
+                async with aiofiles.open(file_path, 'rb') as f:
+                    file_data = await f.read()
+
+                data = aiohttp.FormData()
+                data.add_field('file', file_data, filename=file_name, content_type=mime_type)
+
+                # Don't send Content-Type header for multipart
+                upload_headers = {k: v for k, v in headers.items() if k != 'Content-Type'}
+            else:
+                # S3 presigned URL - use raw file data
+                async with aiofiles.open(file_path, 'rb') as f:
+                    file_data = await f.read()
+
+                data = file_data
+                upload_headers = headers.copy()
+                upload_headers['Content-Type'] = mime_type
+
+            async with session.post(upload_url, headers=upload_headers, data=data,
                                   timeout=aiohttp.ClientTimeout(total=120)) as response:
-                if response.status not in [200, 201]:
+                if response.status not in [200, 201, 204]:  # 204 for successful S3 uploads
                     error_text = await response.text()
                     return {'error': f'Upload failed (status {response.status}): {error_text[:200]}'}
-                
+
                 return {'success': True}
-                
+
         except Exception as e:
             return {'error': f'Simple upload failed: {str(e)}'}
     
@@ -187,16 +222,24 @@ class FileUploader:
             return {'error': f'Streaming upload failed: {str(e)}'}
     
     def _get_mime_type(self, file_name: str) -> str:
-        """Get Notion-compatible MIME type"""
+        """Get Notion-compatible MIME type
+
+        For files with .txt workaround, always returns text/plain
+        """
         ext = os.path.splitext(file_name)[1].lower()
+
+        # If file has .txt extension (including workaround files), use text/plain
+        if ext == '.txt':
+            return 'text/plain'
+
         mime_type = self.config.get_mime_type(ext)
-        
+
         # Fallback to system detection if not in our mapping
         if mime_type == 'application/octet-stream':
             detected_type, _ = mimetypes.guess_type(file_name)
             if detected_type:
                 mime_type = detected_type
-        
+
         return mime_type
     
     def upload_sync(self, file_path: str, file_name: str = None) -> Dict:
